@@ -4,7 +4,9 @@ print(f"__file__ = {__file__:<35} | __name__ = {__name__:<20} | __package__ = {s
 # https://dash.plotly.com/deployment
 from app.main import app
 
+server = app.server
+
 if __name__ == "__main__":
-    app.run_server(debug = True)
+    server.run(debug = True)
     
 print("---end of wsgi---")    
