@@ -16,15 +16,16 @@ app.layout = html.Div([
 	html.H1('Stock Graph'),
 
 	html.Div([
-		html.Div('Symbol to graph:'),
+		html.Div('Symbol to graph:', style = {'textDecoration': 'underline'}),
 		dcc.Input(id = 'symbol', value = '', type = 'text'),
-		html.Div('Price to graph:'),
+
+		html.Div('Price to graph:', style = {'textDecoration': 'underline'}),
 		dcc.Dropdown(id = 'price',
 			options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'All']],
 			value = 'Adj Close'
 		),
-		html.Div('_____________'),
-		html.Button('Submit', id = 'submit'),
+		
+		html.Button('Submit', id = 'submit', style = {'marginTop': 5}),
 	], 
 	style = {'width': '13%', 'display': 'inline-block'}),
 
