@@ -6,30 +6,33 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objects as go
+import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
 from dash.dependencies import Input, Output, State
-from dash_bootstrap_components import themes
 
-app = dash.Dash(__name__, external_stylesheets = [themes.DARKLY])
+
+app = dash.Dash(__name__, external_stylesheets = [dbc.themes.DARKLY])
 app.title = 'Stock Graph'
 
 app.layout = html.Div([
 		html.H1('Stock Graph', style = {'textAlign': 'center'}),
 
 		html.Div([
-			html.Div('Symbol to graph:', style = {'textDecoration': 'underline'}),
-			dcc.Input(id = 'symbol', value = '^GSPC', type = 'text'),
+			html.Div(['Symbol to graph:', 
+					 dcc.Input(id = 'symbol', value = '^GSPC', type = 'text', style = {'display': 'block'})],
+					 style = {'textDecoration': 'underline'}),
 
-			html.Div('Price to graph:', style = {'textDecoration': 'underline'}),
-			dcc.Dropdown(id = 'price',
-				options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'OHLC']],
-				value = 'Adj Close',
-				style = {'color': 'black'}
-			),
+			html.Div(['Price to graph:', 
+					 dcc.Dropdown(id = 'price',
+						options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'OHLC']],
+						value = 'Adj Close',
+						style = {'color': 'black'}
+					 )],
+					 style = {'textDecoration': 'underline'}),
 			
-			html.Button('Submit', id = 'submit', style = {'marginTop': 5}),
+			dbc.Button('Submit', id = 'submit', color = 'primary', className = 'mr-1', style = {'marginTop': 5}),
 		], 
-		style = {'width': '13%', 'display': 'inline-block', 'marginLeft': 8}),
+		style = {'display': 'inline-grid', 'marginLeft': 8}),
 
 		html.Div(id = 'output-graph')
 	]
