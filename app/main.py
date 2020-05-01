@@ -14,7 +14,7 @@ app = dash.Dash(__name__, external_stylesheets = [themes.DARKLY])
 app.title = 'Stock Graph'
 
 app.layout = html.Div([
-		html.H1('Stock Graph'),
+		html.H1('Stock Graph', style = {'textAlign': 'center'}),
 
 		html.Div([
 			html.Div('Symbol to graph:', style = {'textDecoration': 'underline'}),
@@ -29,7 +29,7 @@ app.layout = html.Div([
 			
 			html.Button('Submit', id = 'submit', style = {'marginTop': 5}),
 		], 
-		style = {'width': '13%', 'display': 'inline-block'}),
+		style = {'width': '13%', 'display': 'inline-block', 'marginLeft': 8}),
 
 		html.Div(id = 'output-graph')
 	]
