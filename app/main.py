@@ -102,9 +102,13 @@ def go_figure(df, symbol, price):
 						])
 					),
 					rangeslider_visible = False
-				))
-				
-	#fig.update(layout_xaxis_rangeslider_visible=False)
+	))
+	# rangebreak does not work with update_layout somehow
+	fig.update_xaxes(
+		rangebreaks = [
+				dict(bounds = ['sat', 'mon'])
+			]
+	)
 	return fig
 
 @app.callback(
