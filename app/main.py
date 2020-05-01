@@ -21,7 +21,7 @@ app.layout = html.Div([
 
 		html.Div('Price to graph:', style = {'textDecoration': 'underline'}),
 		dcc.Dropdown(id = 'price',
-			options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'All']],
+			options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'OHLC']],
 			value = 'Adj Close'
 		),
 		
@@ -54,14 +54,14 @@ def go_figure(df, symbol, price):
 		shared_xaxes = True, 
 		vertical_spacing = 0.02)
 
-	if price == 'All':
+	if price == 'OHLC':
 		g1 = go.Candlestick(
 					x = df.index, 
 					open = df['Open'],
 					high = df['High'],
 					low = df['Low'],
 					close = df['Close'],
-					name = 'Price')
+					name = 'OHLC')
 	else:
 		g1 = go.Scatter(x = df.index, y = df[price], name = price)
 	fig.add_trace(g1, row = 1, col = 1)
@@ -70,8 +70,41 @@ def go_figure(df, symbol, price):
 	fig.add_trace(g2, row = 5, col = 1)
 
 	# centered title, left aligned by default
-	fig.update_layout(title_text = symbol, title_x = 0.5)
-	fig.update(layout_xaxis_rangeslider_visible=False)
+	fig.update_layout(title_text = symbol, title_x = 0.5,
+				xaxis = dict(
+					rangeselector = dict(
+						buttons = list([
+							dict(count = 5,
+								 label = '1w',
+								 step = 'day',
+								 stepmode = 'backward'),
+							dict(count = 10,
+								 label = '2w',
+								 step = 'day',
+								 stepmode = 'backward'),
+							dict(count = 1,
+								 label = '1m',
+								 step = 'month',
+								 stepmode = 'backward'),
+							dict(count = 6,
+								 label = '6m',
+								 step = 'month',
+								 stepmode = 'backward'),
+							dict(count = 1,
+								 label = 'YTD',
+								 step = 'year',
+								 stepmode = 'todate'),
+							dict(count = 1,
+								 label = '1y',
+								 step = 'year',
+								 stepmode = 'backward'),
+							dict(step = 'all')
+						])
+					),
+					rangeslider_visible = False
+				))
+				
+	#fig.update(layout_xaxis_rangeslider_visible=False)
 	return fig
 
 @app.callback(
