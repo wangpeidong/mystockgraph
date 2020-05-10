@@ -10,6 +10,10 @@ import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
 from dash.dependencies import Input, Output, State
 
+import numpy as np
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 
 app = dash.Dash(__name__, external_stylesheets = [dbc.themes.DARKLY])
 app.title = 'Stock Graph'
@@ -24,7 +28,7 @@ app.layout = html.Div([
 
 			html.Div(['Price to graph:', 
 					 dcc.Dropdown(id = 'price',
-						options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'OHLC']],
+						options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'OHLC', 'Forecast']],
 						value = 'Adj Close',
 						style = {'color': 'black'}
 					 )],
@@ -34,7 +38,10 @@ app.layout = html.Div([
 		], 
 		style = {'display': 'inline-grid', 'marginLeft': 8}),
 
-		html.Div(id = 'output-graph')
+		html.Div([
+			html.Div(id = 'output-graph')
+		],
+		style = {'height': '100%'})
 	]
 )
 
@@ -43,6 +50,49 @@ app.layout = html.Div([
 # prevoius data set directly.
 prev_symbol = ''
 prev_df = None
+
+def data_regression(df):
+	df['HL_PCT'] = (df['High'] - df['Low']) / df['Adj Close'] * 100.0
+	df['PCT_change'] = (df['Adj Close'] - df['Open']) / df['Open'] * 100.0
+	df = df[['Adj Close', 'HL_PCT', 'PCT_change', 'Volume']]
+
+	forecast_col = 'Adj Close'
+	df.fillna(value = -99999, inplace = True)
+	forecast_out = 10 # 10 days
+	df['label'] = df[forecast_col].shift(-forecast_out)
+
+	X = np.array(df.drop(['label'], 1))
+	X = preprocessing.scale(X)
+	X_lately = X[-forecast_out:]
+	X_2nd_lately = X[-forecast_out:] 
+	X = X[:-forecast_out * 2] # Feature
+	y = np.array(df['label'][:-forecast_out * 2]) # Label
+
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2)
+	clf = LinearRegression() # Classifier
+	clf.fit(X_train, y_train)
+	accuracy = clf.score(X_test, y_test)
+
+	last_col = len(df.columns)
+	df['Forecast'] = np.nan
+
+	# Comparing set with Adj Close using 2nd X_lately period feature
+	comparing_set = clf.predict(X_2nd_lately) 
+	for idx, val in enumerate(comparing_set):
+		df.iloc[-forecast_out + idx, last_col] = val
+
+	# Future set based on X_lately period feature
+	forecast_set = clf.predict(X_lately)
+	last_date = df.iloc[-1].name
+	last_unix = last_date.timestamp()
+	one_day = 86400 # seconds in a day
+	next_unix = last_unix + one_day
+	for val in forecast_set:
+		next_date = datetime.datetime.fromtimestamp(next_unix)
+		next_unix += 86400
+		df.loc[next_date, 'Forecast'] = val
+
+	return accuracy, df
 
 # Retrieve symbol price data set from Yahoo
 def retrieve_dataset(symbol):
@@ -55,40 +105,16 @@ def retrieve_dataset(symbol):
 	df = web.DataReader(symbol, 'yahoo', start, end)
 	df.reset_index(inplace = True)
 	df.set_index('Date', inplace = True)
-	
+
+	df['5-DMA'] = df['Adj Close'].rolling(window = 5, min_periods = 0).mean()
+	df['30-DMA'] = df['Adj Close'].rolling(window = 30, min_periods = 0).mean()
+
 	prev_symbol = symbol
 	prev_df = df
 
 	return df
 
-def go_figure(df, symbol, price):
-	fig = make_subplots(
-		rows = 5, cols = 1, 
-		specs = [
-					[{'rowspan': 4}],
-					[None],
-					[None],
-					[None],
-					[{}]
-				],
-		shared_xaxes = True, 
-		vertical_spacing = 0.02)
-
-	if price == 'OHLC':
-		g1 = go.Candlestick(
-					x = df.index, 
-					open = df['Open'],
-					high = df['High'],
-					low = df['Low'],
-					close = df['Close'],
-					name = 'OHLC')
-	else:
-		g1 = go.Scatter(x = df.index, y = df[price], name = price)
-	fig.add_trace(g1, row = 1, col = 1)
-
-	g2 = go.Bar(x = df.index, y = df['Volume'], name = 'Volume')
-	fig.add_trace(g2, row = 5, col = 1)
-
+def create_fig_layout(fig, symbol):
 	# centered title, left aligned by default
 	fig.update_layout(title_text = symbol, title_x = 0.5, 
 				plot_bgcolor = '#222', paper_bgcolor = '#222', font = dict(color = 'orangered'),
@@ -136,6 +162,50 @@ def go_figure(df, symbol, price):
 	)
 	return fig
 
+def go_figure(df, symbol, price):
+	if price == 'Forecast':
+		accuracy, df = data_regression(df.copy())
+		print(f'LinearRegression accuracy: {accuracy}')
+		trace1 = go.Scatter(x = df.index, y = df["Adj Close"], name = "Adj Close", marker = dict(color = 'blue'))
+		trace2 = go.Scatter(x = df.index, y = df["Forecast"], name = "Forecast", marker = dict(color = 'red'))
+
+		fig = go.Figure(data = [trace1, trace2])
+		return create_fig_layout(fig, symbol)
+
+	fig = make_subplots(
+		rows = 5, cols = 1, 
+		specs = [
+					[{'rowspan': 4}],
+					[None],
+					[None],
+					[None],
+					[{}]
+				],
+		shared_xaxes = True, 
+		vertical_spacing = 0.02)
+
+	if price == 'OHLC':
+		g1 = go.Candlestick(
+					x = df.index, 
+					open = df['Open'],
+					high = df['High'],
+					low = df['Low'],
+					close = df['Close'],
+					name = 'OHLC')
+	else:
+		g1 = go.Scatter(x = df.index, y = df[price], name = price, marker = dict(color = 'blue'))
+		if (price == 'Adj Close'):
+			g1_d30 = go.Scatter(x = df.index, y = df['30-DMA'], name = '30-DMA', marker = dict(color = 'red'))
+			g1_d5 = go.Scatter(x = df.index, y = df['5-DMA'], name = ' 5-DMA', marker = dict(color = 'green'), fill='tonexty')
+			fig.add_trace(g1_d30, row = 1, col = 1)
+			fig.add_trace(g1_d5, row = 1, col = 1)
+
+	fig.add_trace(g1, row = 1, col = 1)
+	g2 = go.Bar(x = df.index, y = df['Volume'], name = 'Volume', marker = dict(color = 'white'))
+	fig.add_trace(g2, row = 5, col = 1)
+
+	return create_fig_layout(fig, symbol)
+
 @app.callback(
 	Output(component_id = 'output-graph', component_property = 'children'),
 	[Input('submit', 'n_clicks')], 
@@ -151,7 +221,7 @@ def update_output_graph(n_clicks, symbol, price):
 		return dcc.Graph(
 			id = 'stock-graph',
 			figure = go_figure(df, symbol, price),
-			style = {'backgroundColor': 'black', 'color': 'white'}
+			style = {'backgroundColor': 'black', 'color': 'white', 'height': 800}
 		)
 	except Exception as e:
 		print(f'[update_output_graph] exception: {str(e)}')
