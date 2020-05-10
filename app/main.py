@@ -89,6 +89,11 @@ def data_regression(df):
 	next_unix = last_unix + one_day
 	for val in forecast_set:
 		next_date = datetime.datetime.fromtimestamp(next_unix)
+		# exclude weekend
+		while next_date.weekday() > 4:
+			next_unix += 86400
+			next_date = datetime.datetime.fromtimestamp(next_unix)
+
 		next_unix += 86400
 		df.loc[next_date, 'Forecast'] = val
 
