@@ -28,7 +28,7 @@ app.layout = html.Div([
 
 			html.Div(['Price to graph:', 
 					 dcc.Dropdown(id = 'price',
-						options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'OHLC']],
+						options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'Ohlc', 'Forecast']],
 						value = 'Adj Close',
 						style = {'color': 'black'}
 					 )],
@@ -163,15 +163,6 @@ def create_fig_layout(fig, symbol):
 	return fig
 
 def go_figure(df, symbol, price):
-	if price == 'Forecast':
-		accuracy, df = data_regression(df.copy())
-		print(f'LinearRegression accuracy: {accuracy}')
-		trace1 = go.Scatter(x = df.index, y = df["Adj Close"], name = "Adj Close", marker = dict(color = 'blue'))
-		trace2 = go.Scatter(x = df.index, y = df["Forecast"], name = "Forecast", marker = dict(color = 'red'))
-
-		fig = go.Figure(data = [trace1, trace2])
-		return create_fig_layout(fig, symbol)
-
 	fig = make_subplots(
 		rows = 5, cols = 1, 
 		specs = [
@@ -184,14 +175,20 @@ def go_figure(df, symbol, price):
 		shared_xaxes = True, 
 		vertical_spacing = 0.02)
 
-	if price == 'OHLC':
+	if price == 'Ohlc':
 		g1 = go.Candlestick(
 					x = df.index, 
 					open = df['Open'],
 					high = df['High'],
 					low = df['Low'],
 					close = df['Close'],
-					name = 'OHLC')
+					name = 'Ohlc')
+	elif price == 'Forecast':
+		accuracy, df = data_regression(df.copy())
+		print(f'LinearRegression accuracy: {accuracy}')
+		g1 = go.Scatter(x = df.index, y = df["Adj Close"], name = "Adj Close", marker = dict(color = 'blue'))
+		g1_forecast = go.Scatter(x = df.index, y = df["Forecast"], name = "Forecast", marker = dict(color = 'red'))
+		fig.add_trace(g1_forecast, row = 1, col = 1)
 	else:
 		g1 = go.Scatter(x = df.index, y = df[price], name = price, marker = dict(color = 'blue'))
 		if (price == 'Adj Close'):
