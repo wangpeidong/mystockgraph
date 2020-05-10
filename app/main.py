@@ -28,7 +28,7 @@ app.layout = html.Div([
 
 			html.Div(['Price to graph:', 
 					 dcc.Dropdown(id = 'price',
-						options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'OHLC', 'Forecast']],
+						options = [{'label': i, 'value': i} for i in ['High', 'Low', 'Open', 'Close', 'Adj Close', 'OHLC']],
 						value = 'Adj Close',
 						style = {'color': 'black'}
 					 )],
